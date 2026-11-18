@@ -1,0 +1,12 @@
+{
+  "appId": "com.nalinahm.startupsarthi",
+  "appName": "StartupSarthi",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#080b14",
+    "allowMixedContent": false
+  }
+}

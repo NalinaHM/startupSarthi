@@ -1,235 +1,138 @@
 import { useState, useRef, useEffect } from "react";
-
-const SYSTEM_PROMPT = `You are an elite startup analyst, venture capitalist, and government financial scheme advisor with 20 years of experience in market research, location strategy, and business validation (especially in India and global markets). Analyze startup ideas with sharp, data-driven insights.
-
-Return ONLY a valid JSON object (no markdown, no backticks) with this exact structure:
-{
-  "verdict": "STRONG BET" | "WORTH EXPLORING" | "PROCEED WITH CAUTION" | "HARD PASS",
-  "verdictScore": 85,
-  "oneLiner": "One punchy sentence describing the opportunity",
-  "marketSize": {
-    "tam": "$4.2B",
-    "sam": "$800M",
-    "som": "$40M",
-    "insight": "Brief market insight"
-  },
-  "problemStrength": {
-    "score": 8,
-    "analysis": "How real and painful is this problem?"
-  },
-  "competitors": [
-    { "name": "Competitor Name", "weakness": "Their key weakness", "threat": "low|medium|high" }
-  ],
-  "moat": {
-    "score": 7,
-    "type": "Network Effects | Data Moat | Brand | Tech | Switching Costs | Regulatory",
-    "explanation": "Why this is or isn't defensible"
-  },
-  "revenueModels": [
-    { "model": "Model name", "fit": "high|medium|low", "rationale": "Why this fits" }
-  ],
-  "gtm": {
-    "phase1": { "title": "Phase title", "tactics": ["tactic1", "tactic2", "tactic3"] },
-    "phase2": { "title": "Phase title", "tactics": ["tactic1", "tactic2"] },
-    "phase3": { "title": "Phase title", "tactics": ["tactic1", "tactic2"] }
-  },
-  "risks": [
-    { "risk": "Risk description", "severity": "low|medium|high", "mitigation": "How to address it" }
-  ],
-  "investorTake": "A frank, 2-sentence VC perspective on fundability",
-
-  "locationAnalysis": {
-    "suitabilityScore": 88,
-    "recommendedRegions": ["Tier-1 Tech Hubs (e.g. Bangalore, Hyderabad)", "Industrial Clusters (e.g. Pune, NCR)"],
-    "demographicFit": "Description of ideal demographic profile and customer density in target areas",
-    "footTrafficAndSupplyChain": "Insights on foot traffic, logistics, location accessibility, or local distribution hubs",
-    "regionalAdvantages": ["Proximity to raw materials", "Availability of skilled tech talent", "Lower operational cost in Tier-2/3 cities"]
-  },
-
-  "governmentSchemes": [
-    {
-      "name": "Pradhan Mantri Mudra Yojana (PMMY) - Tarun / Kishore",
-      "type": "Mudra Loan",
-      "maxFunding": "Up to ₹10 Lakhs (Collateral Free)",
-      "eligibility": "Highly Eligible",
-      "summary": "Non-corporate, non-farm small/micro business loan for purchasing machinery, working capital, or setup.",
-      "documentsRequired": ["Mudra Application Form", "ID & Address Proof", "Business Registration / Udyam Certificate", "6 Months Bank Statement"],
-      "applicationSteps": ["Register on JanSamarth portal or approach partner bank", "Submit project report & quotation", "Bank approval & loan disbursement"]
-    },
-    {
-      "name": "Startup India Seed Fund Scheme (SISFS)",
-      "type": "Grant / Convertible Debenture",
-      "maxFunding": "Up to ₹20 Lakhs Grant / ₹50 Lakhs Debt",
-      "eligibility": "Eligible if DPIIT recognized",
-      "summary": "Financial assistance to startups for proof of concept, prototype development, product trials, and market entry.",
-      "documentsRequired": ["DPIIT Recognition Certificate", "Pitch Deck", "Proof of Concept / Prototype Demo"],
-      "applicationSteps": ["Apply via Startup India Portal", "Select approved incubator", "Present project to Incubator Seed Evaluation Committee"]
-    }
-  ],
-
-  "marketingStrategy": {
-    "targetAudiencePersona": "Specific description of primary ideal customer profile (age, profession, pain points)",
-    "messagingHook": "Catchy headline / core campaign slogan for marketing",
-    "channels": [
-      { "channel": "Performance Marketing (Meta & Google Ads)", "strategy": "Target intent-based keywords and retarget landing page visitors" },
-      { "channel": "Grassroots / Local Community Outreach", "strategy": "Conduct localized workshops and partner with regional trade associations" }
-    ],
-    "growthHacks": ["Double-sided referral bonus for initial 1,000 users", "Freemium tier to drive organic word-of-mouth"]
-  }
-}`;
+import { BUDGET_TIERS, FOUNDER_PROFILES, SECTORS } from "./data/schemes";
+import { LANGUAGES, t } from "./i18n/translations";
+import { analyzeStartupIdea } from "./services/aiService";
+import {
+  deleteSavedIdea,
+  loadLanguage,
+  loadSavedIdeas,
+  saveIdeaToDevice,
+  saveLanguage,
+} from "./utils/storage";
+import BudgetPlannerTab from "./components/BudgetPlannerTab";
+import SchemesMatcherTab from "./components/SchemesMatcherTab";
+import DprReportTab from "./components/DprReportTab";
+import { LocationTab, MarketingTab, VcAnalysisTab } from "./components/VcLocationMarketingTabs";
+import SavedIdeasDrawer from "./components/SavedIdeasDrawer";
 
 const VERDICT_CONFIG = {
-  "STRONG BET": { color: "#00ff87", bg: "rgba(0,255,135,0.08)", border: "rgba(0,255,135,0.3)" },
-  "WORTH EXPLORING": { color: "#60cfff", bg: "rgba(96,207,255,0.08)", border: "rgba(96,207,255,0.3)" },
-  "PROCEED WITH CAUTION": { color: "#ffb830", bg: "rgba(255,184,48,0.08)", border: "rgba(255,184,48,0.3)" },
-  "HARD PASS": { color: "#ff4f4f", bg: "rgba(255,79,79,0.08)", border: "rgba(255,79,79,0.3)" },
+  "STRONG BET": { color: "#00e676", bg: "rgba(0,230,118,0.08)", border: "rgba(0,230,118,0.32)" },
+  "WORTH EXPLORING": { color: "#56ccf2", bg: "rgba(86,204,242,0.08)", border: "rgba(86,204,242,0.32)" },
+  "PROCEED WITH CAUTION": { color: "#ffb830", bg: "rgba(255,184,48,0.08)", border: "rgba(255,184,48,0.32)" },
+  "HARD PASS": { color: "#ff5e5e", bg: "rgba(255,94,94,0.08)", border: "rgba(255,94,94,0.32)" },
 };
 
-const THREAT_COLOR = { low: "#00ff87", medium: "#ffb830", high: "#ff4f4f" };
-const FIT_COLOR = { high: "#00ff87", medium: "#ffb830", low: "#ff4f4f" };
-const SEV_COLOR = { low: "#00ff87", medium: "#ffb830", high: "#ff4f4f" };
-
-function ScoreBar({ score, max = 10, color = "#00ff87" }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,0.08)", borderRadius: 3, overflow: "hidden" }}>
-        <div style={{ width: `${Math.min(100, (score / max) * 100)}%`, height: "100%", background: color, borderRadius: 3, transition: "width 1.2s cubic-bezier(0.16,1,0.3,1)" }} />
-      </div>
-      <span style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color, minWidth: 36, textAlign: "right" }}>{score}/{max}</span>
-    </div>
-  );
-}
-
-function Tag({ label, color }) {
-  return (
-    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", padding: "3px 8px", borderRadius: 4, background: `${color}18`, color, border: `1px solid ${color}44` }}>
-      {label}
-    </span>
-  );
-}
-
-function Section({ title, children, accent = "#00ff87" }) {
-  return (
-    <div style={{ marginBottom: 28 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-        <div style={{ width: 4, height: 18, background: accent, borderRadius: 2, flexShrink: 0 }} />
-        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(255,255,255,0.4)" }}>{title}</span>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-const SECTORS = [
-  "General / Multi-Sector",
-  "Fintech & Banking",
-  "Healthcare & MedTech",
-  "Agritech & Rural Business",
-  "E-Commerce & D2C",
-  "AI & SaaS",
-  "EdTech & Upskilling",
-  "FoodTech & Quick Commerce",
-  "CleanTech & EV",
-];
-
 const EXAMPLES = [
-  "An AI-driven soil testing & micro-loan recommendation app for smallholder farmers in Karnataka",
-  "A hyperlocal dark store network delivering organic groceries in Tier-2 Indian cities within 30 minutes",
-  "Fintech app rounding up daily transactions to invest in solar mini-grids for rural electrification",
-  "B2B SaaS for manufacturing SMEs to manage Mudra loan applications, GST compliance, and supplier invoices",
+  {
+    idea: "Home-cooked millet tiffin & healthy lunch subscription for college students and IT workers using WhatsApp orders",
+    location: "Mysuru, Karnataka",
+    sector: "Food, Tiffin & Cloud Kitchen",
+    budgetId: "under25k",
+  },
+  {
+    idea: "On-demand solar pump & farm equipment rental + soil testing micro-service for smallholder villages",
+    location: "Mandya, Karnataka (Rural)",
+    sector: "Agritech & Rural Business",
+    budgetId: "zero",
+  },
+  {
+    idea: "Eco-friendly paper bag & biodegradable plate micro-manufacturing unit supplying local bakeries and kirana stores",
+    location: "Hubballi, Karnataka",
+    sector: "Manufacturing & Micro-Unit",
+    budgetId: "25k-1l",
+  },
+  {
+    idea: "Doorstep mobile, laptop & appliance repair service run by certified local technicians on a commission model",
+    location: "Bengaluru Suburbs",
+    sector: "Services, Repair & Home Care",
+    budgetId: "zero",
+  },
 ];
 
 export default function App() {
+  const [lang, setLang] = useState(() => loadLanguage());
+  const [view, setView] = useState("home"); // 'home' | 'calculator' | 'saved'
+
+  // Form inputs
   const [idea, setIdea] = useState("");
   const [targetLocation, setTargetLocation] = useState("");
-  const [sector, setSector] = useState("General / Multi-Sector");
+  const [sector, setSector] = useState(SECTORS[0]);
+  const [budgetId, setBudgetId] = useState("zero");
+  const [founderProfileId, setFounderProfileId] = useState("general");
+  const [areaType, setAreaType] = useState("urban");
+
+  // Analysis state
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [currentIdeaId, setCurrentIdeaId] = useState(null);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("vc"); // 'vc' | 'location' | 'govt' | 'marketing'
+  const [activeTab, setActiveTab] = useState("budget"); // 'budget' | 'schemes' | 'dpr' | 'vc' | 'location' | 'marketing'
   const [checkedDocs, setCheckedDocs] = useState({});
+  const [savedIdeas, setSavedIdeas] = useState(() => loadSavedIdeas());
+  const [justSaved, setJustSaved] = useState(false);
+  const [printMode, setPrintMode] = useState("full"); // 'full' | 'dpr'
+
+  // PWA Install Prompt state
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
 
   const textareaRef = useRef(null);
   const resultsRef = useRef(null);
 
   useEffect(() => {
+    saveLanguage(lang);
+  }, [lang]);
+
+  useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [idea]);
 
-  async function analyze() {
+  useEffect(() => {
+    const onBeforeInstall = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", onBeforeInstall);
+    return () => window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+  }, []);
+
+  const selectedBudget = BUDGET_TIERS.find((b) => b.id === budgetId) || BUDGET_TIERS[0];
+  const selectedProfile =
+    FOUNDER_PROFILES.find((p) => p.id === founderProfileId) || FOUNDER_PROFILES[0];
+
+  async function handleInstallApp() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    setDeferredPrompt(null);
+  }
+
+  async function handleAnalyze() {
     if (!idea.trim() || loading) return;
-
-    const model = import.meta.env.VITE_GEMINI_MODEL || "gemini-2.5-flash";
-    const apiKey = String(import.meta.env.VITE_GEMINI_API_KEY ?? "").trim();
-    const useDevProxy = import.meta.env.DEV || import.meta.env.VITE_GEMINI_USE_PROXY === "true";
-    const proxyHasKey = !!import.meta.env.VITE_PROXY_HAS_GEMINI_KEY;
-
-    if (useDevProxy && !proxyHasKey) {
-      setError(
-        "API key is not set for the dev proxy. In the project root, add GEMINI_API_KEY or VITE_GEMINI_API_KEY to your .env file, save it, then stop and restart npm run dev.",
-      );
-      return;
-    }
-
-    if (!useDevProxy && !apiKey) {
-      setError(
-        "Missing API key. Add VITE_GEMINI_API_KEY to your .env before building, or run npm run dev with a key so the Vite proxy can call Gemini (avoids CORS).",
-      );
-      return;
-    }
-
     setLoading(true);
     setResult(null);
     setError(null);
     setCheckedDocs({});
+    setJustSaved(false);
+    setCurrentIdeaId(`idea_${Date.now()}`);
 
     try {
-      const url = useDevProxy
-        ? `/api/gemini/v1beta/models/${model}:generateContent`
-        : `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
-
-      const promptText = `Analyze this startup idea:
-Idea: "${idea.trim()}"
-Industry Sector: "${sector}"
-Target Location / Geography: "${targetLocation.trim() || "India (Tier 1/2 Cities) & Global"}"`;
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: promptText }],
-            },
-          ],
-          generationConfig: {
-            maxOutputTokens: 8192,
-            responseMimeType: "application/json",
-            temperature: 0.7,
-          },
-        }),
+      const parsed = await analyzeStartupIdea({
+        idea,
+        targetLocation,
+        sector,
+        budgetTier: selectedBudget,
+        founderProfile: selectedProfile,
+        areaType,
+        langCode: lang,
       });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error?.message || `API request failed (${res.status})`);
-      }
-
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) {
-        throw new Error("No analysis returned. Try again.");
-      }
-
-      const clean = text.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(clean);
       setResult(parsed);
-      setActiveTab("vc");
-      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+      setActiveTab("budget");
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 120);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Analysis failed. Please try again.");
     } finally {
@@ -237,657 +140,701 @@ Target Location / Geography: "${targetLocation.trim() || "India (Tier 1/2 Cities
     }
   }
 
-  const toggleDoc = (schemeIdx, docIdx) => {
-    const key = `${schemeIdx}-${docIdx}`;
-    setCheckedDocs(prev => ({ ...prev, [key]: !prev[key] }));
-  };
+  function handleSaveCurrentIdea(nextCheckedDocs = checkedDocs) {
+    if (!result) return;
+    const id = currentIdeaId || `idea_${Date.now()}`;
+    setCurrentIdeaId(id);
+    const updated = saveIdeaToDevice({
+      id,
+      idea: idea.trim(),
+      targetLocation: targetLocation.trim(),
+      sector,
+      budgetId,
+      founderProfileId,
+      areaType,
+      lang,
+      result,
+      checkedDocs: nextCheckedDocs,
+    });
+    setSavedIdeas(updated);
+    setJustSaved(true);
+  }
 
-  const handlePrint = () => {
-    window.print();
-  };
+  function handleToggleDoc(docKey) {
+    const next = { ...checkedDocs, [docKey]: !checkedDocs[docKey] };
+    setCheckedDocs(next);
+    // If already saved, auto-sync checklist to localStorage
+    if (currentIdeaId && savedIdeas.some((item) => item.id === currentIdeaId)) {
+      handleSaveCurrentIdea(next);
+    }
+  }
 
-  const vc = result ? VERDICT_CONFIG[result.verdict] || VERDICT_CONFIG["WORTH EXPLORING"] : null;
+  function handleLoadSaved(item) {
+    setIdea(item.idea || "");
+    setTargetLocation(item.targetLocation || "");
+    setSector(item.sector || SECTORS[0]);
+    setBudgetId(item.budgetId || "zero");
+    setFounderProfileId(item.founderProfileId || "general");
+    setAreaType(item.areaType || "urban");
+    setResult(item.result || null);
+    setCheckedDocs(item.checkedDocs || {});
+    setCurrentIdeaId(item.id);
+    setJustSaved(true);
+    setActiveTab("budget");
+    setView("home");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleDeleteSaved(id) {
+    const updated = deleteSavedIdea(id);
+    setSavedIdeas(updated);
+    if (id === currentIdeaId) {
+      setJustSaved(false);
+    }
+  }
+
+  function triggerPrint(mode = "full") {
+    setPrintMode(mode);
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => setPrintMode("full"), 500);
+    }, 80);
+  }
+
+  const vc = result
+    ? VERDICT_CONFIG[result.verdict] || VERDICT_CONFIG["WORTH EXPLORING"]
+    : null;
+
+  const isAlreadySaved = Boolean(
+    justSaved || (currentIdeaId && savedIdeas.some((item) => item.id === currentIdeaId)),
+  );
+
+  const RESULT_TABS = [
+    { id: "budget", label: `💸 ${t(lang, "tabBudget")}`, accent: "#00e676" },
+    { id: "schemes", label: `🏛️ ${t(lang, "tabSchemes")}`, accent: "#ffb830" },
+    { id: "dpr", label: `📄 ${t(lang, "tabDpr")}`, accent: "#56ccf2" },
+    { id: "vc", label: `📊 ${t(lang, "tabVc")}`, accent: "#00e676" },
+    { id: "location", label: `📍 ${t(lang, "tabLocation")}`, accent: "#56ccf2" },
+    { id: "marketing", label: `📣 ${t(lang, "tabMarketing")}`, accent: "#c58aff" },
+  ];
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: "#080810",
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-      color: "#e8e4dc",
-      padding: "0 0 80px",
-    }}>
-      {/* Ambient background */}
-      <div className="no-print" style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
-        <div style={{ position: "absolute", top: "-20%", left: "50%", transform: "translateX(-50%)", width: 800, height: 600, background: "radial-gradient(ellipse, rgba(0,255,135,0.05) 0%, transparent 70%)" }} />
-        <div style={{ position: "absolute", bottom: "10%", right: "-10%", width: 500, height: 500, background: "radial-gradient(ellipse, rgba(96,96,255,0.05) 0%, transparent 70%)" }} />
+    <div className={`app-shell ${printMode === "dpr" ? "print-only-dpr" : ""}`}>
+      {/* Ambient Background */}
+      <div className="ambient-bg no-print">
+        <div className="ambient-glow-top" />
+        <div className="ambient-glow-bottom" />
       </div>
 
-      <div style={{ maxWidth: 840, margin: "0 auto", padding: "0 24px", position: "relative", zIndex: 1 }}>
-        {/* Header */}
-        <header className="no-print" style={{ paddingTop: 60, paddingBottom: 48, textAlign: "center" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 20, background: "rgba(0,255,135,0.07)", border: "1px solid rgba(0,255,135,0.18)", borderRadius: 24, padding: "6px 16px" }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#00ff87", animation: "pulse 2s infinite" }} />
-            <span style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#00ff87", fontFamily: "monospace", fontWeight: 700 }}>AI Startup Intelligence & Schemes Advisor</span>
-          </div>
-          <h1 style={{ margin: "0 0 16px", fontSize: "clamp(34px, 5.5vw, 54px)", fontWeight: 900, lineHeight: 1.1, letterSpacing: "-0.02em" }}>
-            Startup Idea <span style={{ color: "#00ff87" }}>Validator</span>
-          </h1>
-          <p style={{ margin: 0, fontSize: 16, color: "rgba(232,228,220,0.65)", lineHeight: 1.6, maxWidth: 580, marginInline: "auto" }}>
-            Instant VC-grade idea validation, location market research, tailored marketing strategies, and personalized guidance for Mudra loans & government support programs.
-          </p>
-        </header>
-
-        {/* Input Form */}
-        <div className="no-print" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 18, padding: 24, marginBottom: 20, boxShadow: "0 8px 32px rgba(0,0,0,0.3)" }}>
-          <div style={{ marginBottom: 18 }}>
-            <label style={{ display: "block", fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "#00ff87", marginBottom: 8, fontFamily: "monospace", fontWeight: 700 }}>
-              1. Your Startup Idea *
-            </label>
-            <textarea
-              ref={textareaRef}
-              value={idea}
-              onChange={e => setIdea(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && (e.metaKey || e.ctrlKey) && analyze()}
-              placeholder="Describe your startup concept, core product/service, and targeted problem..."
-              rows={3}
-              style={{
-                width: "100%",
-                background: "rgba(0,0,0,0.25)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: 10,
-                padding: "14px 16px",
-                outline: "none",
-                color: "#e8e4dc",
-                fontSize: 16,
-                lineHeight: 1.6,
-                resize: "none",
-                boxSizing: "border-box",
-                minHeight: 90,
-              }}
-            />
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 18 }}>
+      {/* Top Sticky App Bar */}
+      <nav className="top-nav no-print">
+        <div className="top-nav-inner">
+          <button
+            className="brand-group"
+            onClick={() => {
+              setView("home");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          >
+            <img src="/icons/icon-192.png" alt="StartupSarthi" className="brand-icon" />
             <div>
-              <label style={{ display: "block", fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 8, fontFamily: "monospace" }}>
-                2. Target Location / Geography
-              </label>
-              <input
-                type="text"
-                value={targetLocation}
-                onChange={e => setTargetLocation(e.target.value)}
-                placeholder="e.g. Mysuru, Karnataka / Tier 2 Cities"
-                style={{
-                  width: "100%",
-                  background: "rgba(0,0,0,0.25)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  borderRadius: 8,
-                  padding: "10px 14px",
-                  color: "#e8e4dc",
-                  fontSize: 14,
-                  outline: "none",
-                }}
-              />
+              <span className="brand-name">{t(lang, "appName")}</span>
+              <span className="brand-sub">{t(lang, "offlineReady")}</span>
             </div>
+          </button>
 
-            <div>
-              <label style={{ display: "block", fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 8, fontFamily: "monospace" }}>
-                3. Industry Sector
-              </label>
-              <select
-                value={sector}
-                onChange={e => setSector(e.target.value)}
-                style={{
-                  width: "100%",
-                  background: "rgba(15,15,25,0.95)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  borderRadius: 8,
-                  padding: "10px 14px",
-                  color: "#e8e4dc",
-                  fontSize: 14,
-                  outline: "none",
-                  cursor: "pointer",
-                }}
-              >
-                {SECTORS.map(sec => (
-                  <option key={sec} value={sec}>{sec}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontFamily: "monospace" }}>Press ⌘ / Ctrl + Enter to analyze</span>
+          <div className="nav-controls">
+            {/* Desktop Navigation */}
             <button
-              onClick={analyze}
-              disabled={loading || !idea.trim()}
-              style={{
-                background: loading || !idea.trim() ? "rgba(255,255,255,0.06)" : "linear-gradient(135deg, #00ff87 0%, #60cfff 100%)",
-                color: loading || !idea.trim() ? "rgba(255,255,255,0.3)" : "#080810",
-                border: "none",
-                borderRadius: 10,
-                padding: "12px 30px",
-                fontSize: 13,
-                fontWeight: 900,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                cursor: loading || !idea.trim() ? "not-allowed" : "pointer",
-                fontFamily: "monospace",
-                transition: "all 0.2s",
-                boxShadow: loading || !idea.trim() ? "none" : "0 4px 20px rgba(0,255,135,0.3)",
-              }}
+              className="nav-pill-btn desktop-only"
+              onClick={() => setView("home")}
+              style={
+                view === "home"
+                  ? { borderColor: "#00e676", color: "#00e676", background: "rgba(0,230,118,0.1)" }
+                  : undefined
+              }
             >
-              {loading ? "Analyzing Startup..." : "Validate Idea →"}
+              🚀 {t(lang, "navAnalyze")}
             </button>
-          </div>
-        </div>
+            <button
+              className="nav-pill-btn desktop-only"
+              onClick={() => setView("calculator")}
+              style={
+                view === "calculator"
+                  ? { borderColor: "#ffb830", color: "#ffb830", background: "rgba(255,184,48,0.1)" }
+                  : undefined
+              }
+            >
+              🧮 {t(lang, "navCalculator")}
+            </button>
+            <button
+              className="nav-pill-btn desktop-only"
+              onClick={() => setView("saved")}
+              style={
+                view === "saved"
+                  ? { borderColor: "#56ccf2", color: "#56ccf2", background: "rgba(86,204,242,0.1)" }
+                  : undefined
+              }
+            >
+              💾 {t(lang, "savedIdeas")} ({savedIdeas.length})
+            </button>
 
-        {/* Examples */}
-        {!result && !loading && (
-          <div className="no-print" style={{ marginBottom: 40 }}>
-            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "monospace", marginBottom: 12 }}>⚡ Try sample startup ideas</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {EXAMPLES.map((ex, i) => (
+            {/* Language Switcher */}
+            <div className="lang-switcher" role="group" aria-label="Language">
+              {LANGUAGES.map((item) => (
                 <button
-                  key={i}
-                  onClick={() => setIdea(ex)}
-                  style={{
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    borderRadius: 10,
-                    padding: "10px 14px",
-                    fontSize: 13,
-                    color: "rgba(232,228,220,0.7)",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    transition: "all 0.15s",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.color = "#e8e4dc"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.color = "rgba(232,228,220,0.7)"; }}
+                  key={item.code}
+                  className={`lang-btn ${lang === item.code ? "active" : ""}`}
+                  onClick={() => setLang(item.code)}
+                  title={item.nativeName}
                 >
-                  <span>💡 {ex}</span>
-                  <span style={{ fontSize: 11, color: "#00ff87", opacity: 0.7 }}>Use →</span>
+                  {item.label}
                 </button>
               ))}
             </div>
+
+            {/* Install PWA Button (shown when browser supports install) */}
+            {deferredPrompt && (
+              <button className="nav-pill-btn install" onClick={handleInstallApp}>
+                📲 {t(lang, "installApp")}
+              </button>
+            )}
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main className="main-container">
+        {view === "calculator" && (
+          <div style={{ paddingTop: 24 }}>
+            <SchemesMatcherTab
+              result={null}
+              founderProfile={founderProfileId}
+              areaType={areaType}
+              lang={lang}
+              standalone
+            />
           </div>
         )}
 
-        {/* Loading Spinner */}
-        {loading && (
-          <div style={{ textAlign: "center", padding: "60px 0" }}>
-            <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-              <div style={{ width: 52, height: 52, border: "3px solid rgba(0,255,135,0.15)", borderTopColor: "#00ff87", borderRadius: "50%", animation: "spin 0.9s linear infinite" }} />
-              <div>
-                <p style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>Running AI Deep Analysis...</p>
-                <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.35)", fontFamily: "monospace" }}>Scanning VC metrics · Regional location fit · Mudra & Govt Schemes · Marketing Strategy</p>
-              </div>
-            </div>
+        {view === "saved" && (
+          <div style={{ paddingTop: 18 }}>
+            <SavedIdeasDrawer
+              savedIdeas={savedIdeas}
+              onLoad={handleLoadSaved}
+              onDelete={handleDeleteSaved}
+              lang={lang}
+            />
           </div>
         )}
 
-        {/* Error message */}
-        {error && (
-          <div style={{ background: "rgba(255,79,79,0.08)", border: "1px solid rgba(255,79,79,0.25)", borderRadius: 12, padding: 20, marginBottom: 24, color: "#ff4f4f", fontSize: 14 }}>{error}</div>
-        )}
-
-        {/* Validation Results */}
-        {result && (
-          <div ref={resultsRef}>
-            {/* Action Bar / Export & Tabs Header */}
-            <div className="no-print" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
-              <div style={{ display: "flex", gap: 6, background: "rgba(255,255,255,0.04)", padding: 4, borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)" }}>
-                <button
-                  onClick={() => setActiveTab("vc")}
-                  style={{
-                    background: activeTab === "vc" ? "#00ff87" : "transparent",
-                    color: activeTab === "vc" ? "#080810" : "rgba(255,255,255,0.6)",
-                    border: "none",
-                    borderRadius: 8,
-                    padding: "8px 16px",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                  }}
-                >
-                  📊 VC Analysis
-                </button>
-                <button
-                  onClick={() => setActiveTab("location")}
-                  style={{
-                    background: activeTab === "location" ? "#60cfff" : "transparent",
-                    color: activeTab === "location" ? "#080810" : "rgba(255,255,255,0.6)",
-                    border: "none",
-                    borderRadius: 8,
-                    padding: "8px 16px",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                  }}
-                >
-                  📍 Location & Market
-                </button>
-                <button
-                  onClick={() => setActiveTab("govt")}
-                  style={{
-                    background: activeTab === "govt" ? "#ffb830" : "transparent",
-                    color: activeTab === "govt" ? "#080810" : "rgba(255,255,255,0.6)",
-                    border: "none",
-                    borderRadius: 8,
-                    padding: "8px 16px",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                  }}
-                >
-                  🏛️ Mudra & Schemes
-                </button>
-                <button
-                  onClick={() => setActiveTab("marketing")}
-                  style={{
-                    background: activeTab === "marketing" ? "#c87bff" : "transparent",
-                    color: activeTab === "marketing" ? "#080810" : "rgba(255,255,255,0.6)",
-                    border: "none",
-                    borderRadius: 8,
-                    padding: "8px 16px",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                  }}
-                >
-                  📣 Marketing
-                </button>
-              </div>
-
-              <button
-                onClick={handlePrint}
+        {view === "home" && (
+          <>
+            {/* Hero Header */}
+            <header
+              className="no-print"
+              style={{ paddingTop: 38, paddingBottom: 28, textAlign: "center" }}
+            >
+              <div
                 style={{
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  borderRadius: 10,
-                  padding: "8px 18px",
-                  color: "#e8e4dc",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  display: "flex",
+                  display: "inline-flex",
                   alignItems: "center",
-                  gap: 6,
+                  gap: 8,
+                  marginBottom: 16,
+                  background: "rgba(0,230,118,0.08)",
+                  border: "1px solid rgba(0,230,118,0.22)",
+                  borderRadius: 99,
+                  padding: "6px 14px",
                 }}
               >
-                🖨️ Export PDF / Print Report
-              </button>
-            </div>
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    background: "#00e676",
+                    animation: "pulse 2s infinite",
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: 11,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: "#00e676",
+                    fontWeight: 800,
+                  }}
+                >
+                  {t(lang, "heroBadge")}
+                </span>
+              </div>
 
-            {/* Verdict Hero Card (Visible on all views & print) */}
-            <div style={{ background: vc.bg, border: `1px solid ${vc.border}`, borderRadius: 16, padding: 28, marginBottom: 24, textAlign: "center" }}>
-              <div style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", fontFamily: "monospace", marginBottom: 10 }}>Investment Verdict</div>
-              <div style={{ fontSize: 36, fontWeight: 900, color: vc.color, letterSpacing: "-0.01em", marginBottom: 12 }}>{result.verdict}</div>
-              <div style={{ fontSize: 16, color: "rgba(232,228,220,0.8)", maxWidth: 560, marginInline: "auto", lineHeight: 1.6 }}>{result.oneLiner}</div>
-              <div style={{ marginTop: 20 }}>
-                <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", fontFamily: "monospace" }}>Confidence Score</span>
-                  <div style={{ width: 140, height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 3, overflow: "hidden" }}>
-                    <div style={{ width: `${result.verdictScore}%`, height: "100%", background: vc.color, borderRadius: 3 }} />
-                  </div>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: vc.color, fontFamily: "monospace" }}>{result.verdictScore}%</span>
+              <h1
+                style={{
+                  margin: "0 0 12px",
+                  fontSize: "clamp(28px, 5vw, 48px)",
+                  fontWeight: 900,
+                  lineHeight: 1.12,
+                  letterSpacing: "-0.025em",
+                }}
+              >
+                {t(lang, "heroTitle1")}{" "}
+                <span style={{ color: "#00e676" }}>{t(lang, "heroTitle2")}</span>
+              </h1>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 15,
+                  color: "rgba(241,239,233,0.68)",
+                  lineHeight: 1.6,
+                  maxWidth: 640,
+                  marginInline: "auto",
+                }}
+              >
+                {t(lang, "heroSubtitle")}
+              </p>
+            </header>
+
+            {/* Founder Intake Card */}
+            <section className="card no-print" style={{ marginBottom: 20 }}>
+              {/* Idea Textarea */}
+              <div style={{ marginBottom: 16 }}>
+                <label className="field-label" style={{ color: "#00e676" }}>
+                  {t(lang, "ideaLabel")}
+                </label>
+                <textarea
+                  ref={textareaRef}
+                  className="field-textarea"
+                  value={idea}
+                  onChange={(e) => setIdea(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && (e.metaKey || e.ctrlKey) && handleAnalyze()}
+                  placeholder={t(lang, "ideaPlaceholder")}
+                  rows={3}
+                  style={{ minHeight: 88, resize: "none", fontSize: 15, lineHeight: 1.55 }}
+                />
+              </div>
+
+              {/* Location & Sector */}
+              <div className="grid-2" style={{ marginBottom: 16 }}>
+                <div>
+                  <label className="field-label">{t(lang, "locationLabel")}</label>
+                  <input
+                    type="text"
+                    className="field-input"
+                    value={targetLocation}
+                    onChange={(e) => setTargetLocation(e.target.value)}
+                    placeholder={t(lang, "locationPlaceholder")}
+                  />
+                </div>
+                <div>
+                  <label className="field-label">{t(lang, "sectorLabel")}</label>
+                  <select
+                    className="field-select"
+                    value={sector}
+                    onChange={(e) => setSector(e.target.value)}
+                  >
+                    {SECTORS.map((sec) => (
+                      <option key={sec} value={sec}>
+                        {sec}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
-            </div>
 
-            {/* TAB 1: VC & Market Feasibility */}
-            {(activeTab === "vc" || window.matchMedia("print").matches) && (
-              <div className="tab-section">
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-                  {/* Market Size */}
-                  <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: 20 }}>
-                    <Section title="Market Sizing (TAM / SAM / SOM)" accent="#60cfff">
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
-                        {[["TAM", result.marketSize?.tam], ["SAM", result.marketSize?.sam], ["SOM", result.marketSize?.som]].map(([label, val]) => (
-                          <div key={label} style={{ textAlign: "center", background: "rgba(96,207,255,0.06)", padding: "10px 6px", borderRadius: 8 }}>
-                            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontFamily: "monospace", marginBottom: 4 }}>{label}</div>
-                            <div style={{ fontSize: 16, fontWeight: 800, color: "#60cfff" }}>{val || "N/A"}</div>
-                          </div>
-                        ))}
-                      </div>
-                      <p style={{ margin: 0, fontSize: 13, color: "rgba(232,228,220,0.65)", lineHeight: 1.6 }}>{result.marketSize?.insight}</p>
-                    </Section>
-                  </div>
-
-                  {/* Problem Strength & Moat */}
-                  <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: 20 }}>
-                    <Section title="Problem Pain Score" accent="#ffb830">
-                      <div style={{ marginBottom: 12 }}>
-                        <ScoreBar score={result.problemStrength?.score || 0} color="#ffb830" />
-                      </div>
-                      <p style={{ margin: "0 0 16px", fontSize: 13, color: "rgba(232,228,220,0.65)", lineHeight: 1.6 }}>{result.problemStrength?.analysis}</p>
-                    </Section>
-
-                    <Section title="Defensibility & Moat" accent="#c87bff">
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                        <Tag label={result.moat?.type || "General"} color="#c87bff" />
-                        <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: "#c87bff" }}>Moat Score: {result.moat?.score}/10</span>
-                      </div>
-                      <p style={{ margin: 0, fontSize: 13, color: "rgba(232,228,220,0.65)", lineHeight: 1.6 }}>{result.moat?.explanation}</p>
-                    </Section>
-                  </div>
-                </div>
-
-                {/* Competitors */}
-                <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: 20, marginBottom: 16 }}>
-                  <Section title="Competitor Landscape" accent="#ff6b6b">
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                      {result.competitors?.map((c, i) => (
-                        <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 14, padding: "12px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 10 }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                              <span style={{ fontSize: 14, fontWeight: 700 }}>{c.name}</span>
-                              <Tag label={`${c.threat} threat`} color={THREAT_COLOR[c.threat] || "#ffb830"} />
-                            </div>
-                            <p style={{ margin: 0, fontSize: 13, color: "rgba(232,228,220,0.6)" }}>⚡ Key Vulnerability: {c.weakness}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </Section>
-                </div>
-
-                {/* Revenue Models & GTM */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-                  {/* Revenue Models */}
-                  <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: 20 }}>
-                    <Section title="Monetization Strategy" accent="#00ff87">
-                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                        {result.revenueModels?.map((rm, i) => (
-                          <div key={i} style={{ padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: 10, borderLeft: `3px solid ${FIT_COLOR[rm.fit] || "#ffb830"}` }}>
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-                              <span style={{ fontSize: 13, fontWeight: 700 }}>{rm.model}</span>
-                              <Tag label={`${rm.fit} fit`} color={FIT_COLOR[rm.fit] || "#ffb830"} />
-                            </div>
-                            <p style={{ margin: 0, fontSize: 12, color: "rgba(232,228,220,0.6)", lineHeight: 1.5 }}>{rm.rationale}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </Section>
-                  </div>
-
-                  {/* Risks */}
-                  <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: 20 }}>
-                    <Section title="Key Risks & Mitigations" accent="#ffb830">
-                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                        {result.risks?.map((r, i) => (
-                          <div key={i} style={{ padding: "10px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 8, borderLeft: `3px solid ${SEV_COLOR[r.severity] || "#ffb830"}` }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                              <span style={{ fontSize: 13, fontWeight: 600 }}>{r.risk}</span>
-                              <Tag label={r.severity} color={SEV_COLOR[r.severity] || "#ffb830"} />
-                            </div>
-                            <p style={{ margin: 0, fontSize: 12, color: "rgba(232,228,220,0.55)" }}>🛡️ {r.mitigation}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </Section>
-                  </div>
-                </div>
-
-                {/* VC Perspective */}
-                <div style={{ background: "rgba(96,207,255,0.06)", border: "1px solid rgba(96,207,255,0.18)", borderRadius: 14, padding: 24, marginBottom: 24 }}>
-                  <div style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(96,207,255,0.6)", fontFamily: "monospace", marginBottom: 10 }}>Investor Perspective</div>
-                  <p style={{ margin: 0, fontSize: 15, lineHeight: 1.7, color: "rgba(232,228,220,0.85)", fontStyle: "italic" }}>"{result.investorTake}"</p>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 2: Location & Regional Market Intelligence */}
-            {(activeTab === "location" || window.matchMedia("print").matches) && (
-              <div className="tab-section">
-                {/* Location Suitability Header */}
-                <div style={{ background: "rgba(96,207,255,0.05)", border: "1px solid rgba(96,207,255,0.2)", borderRadius: 16, padding: 24, marginBottom: 20 }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                    <div>
-                      <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#60cfff", fontFamily: "monospace", fontWeight: 700 }}>Location Feasibility Score</div>
-                      <h3 style={{ margin: "4px 0 0", fontSize: 22, fontWeight: 800, color: "#e8e4dc" }}>Geographic & Demand Fit</h3>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <span style={{ fontSize: 32, fontWeight: 900, color: "#60cfff", fontFamily: "monospace" }}>{result.locationAnalysis?.suitabilityScore ?? 80}/100</span>
-                    </div>
-                  </div>
-                  <ScoreBar score={result.locationAnalysis?.suitabilityScore ?? 80} max={100} color="#60cfff" />
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-                  {/* Recommended Hubs */}
-                  <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: 20 }}>
-                    <Section title="Recommended Launch Regions / Hubs" accent="#60cfff">
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
-                        {result.locationAnalysis?.recommendedRegions?.map((reg, idx) => (
-                          <span key={idx} style={{ background: "rgba(96,207,255,0.12)", color: "#60cfff", border: "1px solid rgba(96,207,255,0.3)", borderRadius: 6, padding: "6px 12px", fontSize: 13, fontWeight: 700 }}>
-                            📍 {reg}
-                          </span>
-                        ))}
-                      </div>
-                      <p style={{ margin: 0, fontSize: 13, color: "rgba(232,228,220,0.65)", lineHeight: 1.6 }}>
-                        <strong>Target Demographic Fit:</strong> {result.locationAnalysis?.demographicFit}
-                      </p>
-                    </Section>
-                  </div>
-
-                  {/* Operational / Foot Traffic & Advantages */}
-                  <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: 20 }}>
-                    <Section title="Foot Traffic & Supply Chain" accent="#00ff87">
-                      <p style={{ margin: "0 0 16px", fontSize: 13, color: "rgba(232,228,220,0.65)", lineHeight: 1.6 }}>
-                        {result.locationAnalysis?.footTrafficAndSupplyChain}
-                      </p>
-                    </Section>
-
-                    <Section title="Regional Strategic Advantages" accent="#ffb830">
-                      <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(232,228,220,0.7)", fontSize: 13, lineHeight: 1.6 }}>
-                        {result.locationAnalysis?.regionalAdvantages?.map((adv, idx) => (
-                          <li key={idx} style={{ marginBottom: 4 }}>{adv}</li>
-                        ))}
-                      </ul>
-                    </Section>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 3: Government Support Schemes & Mudra Loans */}
-            {(activeTab === "govt" || window.matchMedia("print").matches) && (
-              <div className="tab-section">
-                {/* Mudra Loan Tiers Overview Callout */}
-                <div style={{ background: "rgba(255,184,48,0.06)", border: "1px solid rgba(255,184,48,0.25)", borderRadius: 16, padding: 20, marginBottom: 20 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                    <span style={{ fontSize: 20 }}>🏛️</span>
-                    <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#ffb830" }}>Pradhan Mantri Mudra Yojana (PMMY) & Govt Support Matrix</h3>
-                  </div>
-                  <p style={{ margin: "0 0 14px", fontSize: 13, color: "rgba(232,228,220,0.7)", lineHeight: 1.6 }}>
-                    Government of India financial support schemes offer collateral-free credit, capital subsidies, and seed grants to launch and scale early-stage businesses.
-                  </p>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                    <div style={{ background: "rgba(0,0,0,0.25)", padding: "10px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)" }}>
-                      <div style={{ fontSize: 11, color: "#00ff87", fontWeight: 800 }}>Mudra SHISHU</div>
-                      <div style={{ fontSize: 13, fontWeight: 700, margin: "2px 0" }}>Up to ₹50,000</div>
-                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Micro seed capital for micro-vendors</div>
-                    </div>
-                    <div style={{ background: "rgba(0,0,0,0.25)", padding: "10px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)" }}>
-                      <div style={{ fontSize: 11, color: "#60cfff", fontWeight: 800 }}>Mudra KISHORE</div>
-                      <div style={{ fontSize: 13, fontWeight: 700, margin: "2px 0" }}>₹50,000 to ₹5 Lakhs</div>
-                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Equipment & working capital</div>
-                    </div>
-                    <div style={{ background: "rgba(0,0,0,0.25)", padding: "10px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)" }}>
-                      <div style={{ fontSize: 11, color: "#ffb830", fontWeight: 800 }}>Mudra TARUN</div>
-                      <div style={{ fontSize: 13, fontWeight: 700, margin: "2px 0" }}>₹5 Lakhs to ₹10 Lakhs</div>
-                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Scaling & capital machinery expansion</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Applicable Schemes Cards */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 24 }}>
-                  {result.governmentSchemes?.map((scheme, sIdx) => (
-                    <div key={sIdx} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 22 }}>
-                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
-                        <div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                            <h4 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#e8e4dc" }}>{scheme.name}</h4>
-                            <Tag label={scheme.type} color="#ffb830" />
-                          </div>
-                          <span style={{ fontSize: 12, color: "#00ff87", fontFamily: "monospace", fontWeight: 700 }}>💰 Max Financial Support: {scheme.maxFunding}</span>
-                        </div>
-                        <Tag label={scheme.eligibility} color="#00ff87" />
-                      </div>
-
-                      <p style={{ margin: "0 0 16px", fontSize: 13, color: "rgba(232,228,220,0.7)", lineHeight: 1.6 }}>{scheme.summary}</p>
-
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                        {/* Interactive Checklist */}
-                        <div>
-                          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", color: "rgba(255,255,255,0.4)", fontFamily: "monospace", marginBottom: 8, fontWeight: 700 }}>
-                            📋 Required Document Checklist
-                          </div>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                            {scheme.documentsRequired?.map((doc, dIdx) => {
-                              const isChecked = !!checkedDocs[`${sIdx}-${dIdx}`];
-                              return (
-                                <label key={dIdx} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: isChecked ? "#00ff87" : "rgba(232,228,220,0.65)", cursor: "pointer" }}>
-                                  <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    onChange={() => toggleDoc(sIdx, dIdx)}
-                                    style={{ accentColor: "#00ff87", cursor: "pointer" }}
-                                  />
-                                  <span style={{ textDecoration: isChecked ? "line-through" : "none" }}>{doc}</span>
-                                </label>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Action Steps */}
-                        <div>
-                          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", color: "rgba(255,255,255,0.4)", fontFamily: "monospace", marginBottom: 8, fontWeight: 700 }}>
-                            🚀 Application Step-by-Step
-                          </div>
-                          <ol style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: "rgba(232,228,220,0.65)", lineHeight: 1.6 }}>
-                            {scheme.applicationSteps?.map((step, stIdx) => (
-                              <li key={stIdx} style={{ marginBottom: 4 }}>{step}</li>
-                            ))}
-                          </ol>
-                        </div>
-                      </div>
-                    </div>
+              {/* Starting Budget Chips */}
+              <div style={{ marginBottom: 16 }}>
+                <label className="field-label">{t(lang, "budgetLabel")}</label>
+                <div className="chip-row">
+                  {BUDGET_TIERS.map((tier) => (
+                    <button
+                      key={tier.id}
+                      type="button"
+                      className={`chip-btn ${budgetId === tier.id ? "active" : ""}`}
+                      onClick={() => setBudgetId(tier.id)}
+                      title={tier.hint}
+                    >
+                      {tier.label}
+                    </button>
                   ))}
                 </div>
               </div>
+
+              {/* Founder Profile & Urban/Rural */}
+              <div className="grid-2" style={{ marginBottom: 18 }}>
+                <div>
+                  <label className="field-label">{t(lang, "profileLabel")}</label>
+                  <select
+                    className="field-select"
+                    value={founderProfileId}
+                    onChange={(e) => setFounderProfileId(e.target.value)}
+                  >
+                    {FOUNDER_PROFILES.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="field-label">{t(lang, "areaTypeLabel")}</label>
+                  <div className="chip-row">
+                    <button
+                      type="button"
+                      className={`chip-btn ${areaType === "urban" ? "active" : ""}`}
+                      onClick={() => setAreaType("urban")}
+                      style={{ flex: 1 }}
+                    >
+                      🏙️ {t(lang, "areaUrban")}
+                    </button>
+                    <button
+                      type="button"
+                      className={`chip-btn ${areaType === "rural" ? "active" : ""}`}
+                      onClick={() => setAreaType("rural")}
+                      style={{ flex: 1 }}
+                    >
+                      🌾 {t(lang, "areaRural")}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Submit Footer */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 12,
+                  paddingTop: 14,
+                  borderTop: "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
+                <span style={{ fontSize: 11.5, color: "rgba(241,239,233,0.38)", fontFamily: "monospace" }}>
+                  {t(lang, "shortcutHint")}
+                </span>
+                <button
+                  onClick={handleAnalyze}
+                  disabled={loading || !idea.trim()}
+                  className="primary-cta"
+                >
+                  {loading ? t(lang, "analyzingBtn") : t(lang, "analyzeBtn")}
+                </button>
+              </div>
+            </section>
+
+            {/* Sample Low-Capital Founder Ideas */}
+            {!result && !loading && (
+              <section className="no-print" style={{ marginBottom: 28 }}>
+                <div className="field-label" style={{ marginBottom: 10 }}>
+                  ⚡ {t(lang, "sampleTitle")}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {EXAMPLES.map((ex, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => {
+                        setIdea(ex.idea);
+                        setTargetLocation(ex.location);
+                        setSector(ex.sector);
+                        setBudgetId(ex.budgetId);
+                      }}
+                      style={{
+                        background: "rgba(255,255,255,0.03)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        borderRadius: 11,
+                        padding: "11px 14px",
+                        fontSize: 13,
+                        color: "rgba(241,239,233,0.78)",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                      }}
+                    >
+                      <span>💡 {ex.idea}</span>
+                      <span
+                        style={{
+                          fontSize: 11.5,
+                          color: "#00e676",
+                          fontWeight: 700,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {t(lang, "useSample")}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </section>
             )}
 
-            {/* TAB 4: Marketing & Growth Strategy */}
-            {(activeTab === "marketing" || window.matchMedia("print").matches) && (
-              <div className="tab-section">
-                {/* Messaging Hook Banner */}
-                <div style={{ background: "rgba(200,123,255,0.06)", border: "1px solid rgba(200,123,255,0.25)", borderRadius: 16, padding: 22, marginBottom: 20, textAlign: "center" }}>
-                  <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.14em", color: "#c87bff", fontFamily: "monospace", fontWeight: 700, marginBottom: 8 }}>Core Marketing Campaign Hook</div>
-                  <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#e8e4dc", fontStyle: "italic" }}>
-                    "{result.marketingStrategy?.messagingHook || "Validate your startup idea before spending a rupee."}"
-                  </h3>
+            {/* Loading Indicator */}
+            {loading && (
+              <div style={{ textAlign: "center", padding: "54px 0" }}>
+                <div
+                  style={{
+                    width: 48,
+                    height: 48,
+                    margin: "0 auto 18px",
+                    border: "3px solid rgba(0,230,118,0.16)",
+                    borderTopColor: "#00e676",
+                    borderRadius: "50%",
+                    animation: "spin 0.85s linear infinite",
+                  }}
+                />
+                <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 6 }}>
+                  {t(lang, "loadingTitle")}
                 </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-                  {/* Persona */}
-                  <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: 20 }}>
-                    <Section title="Ideal Customer Persona" accent="#c87bff">
-                      <p style={{ margin: 0, fontSize: 13, color: "rgba(232,228,220,0.7)", lineHeight: 1.6 }}>
-                        {result.marketingStrategy?.targetAudiencePersona}
-                      </p>
-                    </Section>
-                  </div>
-
-                  {/* Growth Hacks */}
-                  <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: 20 }}>
-                    <Section title="Viral Growth Hacks" accent="#00ff87">
-                      <ul style={{ margin: 0, paddingLeft: 16, color: "rgba(232,228,220,0.7)", fontSize: 13, lineHeight: 1.6 }}>
-                        {result.marketingStrategy?.growthHacks?.map((hack, idx) => (
-                          <li key={idx} style={{ marginBottom: 6 }}>⚡ {hack}</li>
-                        ))}
-                      </ul>
-                    </Section>
-                  </div>
-                </div>
-
-                {/* Marketing Channels Matrix */}
-                <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: 20, marginBottom: 20 }}>
-                  <Section title="Acquisition Channels & Strategy" accent="#60cfff">
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
-                      {result.marketingStrategy?.channels?.map((ch, idx) => (
-                        <div key={idx} style={{ padding: 14, background: "rgba(255,255,255,0.03)", borderRadius: 10, border: "1px solid rgba(96,207,255,0.15)" }}>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: "#60cfff", marginBottom: 6 }}>📣 {ch.channel}</div>
-                          <p style={{ margin: 0, fontSize: 12, color: "rgba(232,228,220,0.6)", lineHeight: 1.5 }}>{ch.strategy}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </Section>
-                </div>
-
-                {/* GTM Phases */}
-                <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: 20, marginBottom: 24 }}>
-                  <Section title="Go-To-Market Roadmap" accent="#00ff87">
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-                      {[result.gtm?.phase1, result.gtm?.phase2, result.gtm?.phase3].map((phase, idx) => (
-                        <div key={idx} style={{ background: "rgba(0,0,0,0.2)", padding: 14, borderRadius: 10 }}>
-                          <div style={{ fontSize: 10, fontFamily: "monospace", letterSpacing: "0.1em", color: "#00ff87", textTransform: "uppercase", marginBottom: 6 }}>Phase {idx + 1}</div>
-                          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: "#e8e4dc" }}>{phase?.title}</div>
-                          <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
-                            {(phase?.tactics || []).map((t, j) => (
-                              <li key={j} style={{ fontSize: 12, color: "rgba(232,228,220,0.6)", lineHeight: 1.6, paddingLeft: 12, position: "relative" }}>
-                                <span style={{ position: "absolute", left: 0, color: "#00ff87" }}>›</span>
-                                {t}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ))}
-                    </div>
-                  </Section>
+                <div style={{ fontSize: 12.5, color: "rgba(241,239,233,0.48)", fontFamily: "monospace" }}>
+                  {t(lang, "loadingSub")}
                 </div>
               </div>
             )}
 
-            {/* Re-analyze Footer Button */}
-            <div className="no-print" style={{ textAlign: "center", marginTop: 32 }}>
-              <button
-                onClick={() => { setResult(null); setIdea(""); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10, padding: "12px 28px", color: "rgba(255,255,255,0.5)", fontSize: 13, cursor: "pointer", fontFamily: "monospace", letterSpacing: "0.06em" }}
+            {/* Error Banner */}
+            {error && (
+              <div
+                style={{
+                  background: "rgba(255,94,94,0.1)",
+                  border: "1px solid rgba(255,94,94,0.32)",
+                  borderRadius: 12,
+                  padding: "14px 18px",
+                  marginBottom: 20,
+                  color: "#ff7a7a",
+                  fontSize: 13.5,
+                  lineHeight: 1.5,
+                }}
               >
-                ← Validate Another Startup Idea
-              </button>
-            </div>
-          </div>
+                ⚠️ {error}
+              </div>
+            )}
+
+            {/* Results Dashboard */}
+            {result && (
+              <div ref={resultsRef}>
+                {/* Verdict Hero Card */}
+                <div
+                  className="non-dpr-section"
+                  style={{
+                    background: vc.bg,
+                    border: `1px solid ${vc.border}`,
+                    borderRadius: 16,
+                    padding: "24px 20px",
+                    marginBottom: 18,
+                    textAlign: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      letterSpacing: "0.14em",
+                      textTransform: "uppercase",
+                      color: "rgba(241,239,233,0.45)",
+                      fontFamily: "monospace",
+                      marginBottom: 6,
+                    }}
+                  >
+                    {result.suggestedBusinessName || "Startup Verdict"}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "clamp(26px, 4.5vw, 36px)",
+                      fontWeight: 900,
+                      color: vc.color,
+                      marginBottom: 8,
+                    }}
+                  >
+                    {result.verdict}
+                  </div>
+                  <p
+                    style={{
+                      margin: "0 auto 16px",
+                      fontSize: 15,
+                      color: "rgba(241,239,233,0.86)",
+                      maxWidth: 600,
+                      lineHeight: 1.55,
+                    }}
+                  >
+                    {result.oneLiner}
+                  </p>
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 10,
+                      marginBottom: 14,
+                    }}
+                  >
+                    <span style={{ fontSize: 12, color: "rgba(241,239,233,0.5)", fontFamily: "monospace" }}>
+                      Feasibility Score
+                    </span>
+                    <div
+                      style={{
+                        width: 130,
+                        height: 6,
+                        background: "rgba(255,255,255,0.12)",
+                        borderRadius: 3,
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: `${Math.min(100, Number(result.verdictScore) || 75)}%`,
+                          height: "100%",
+                          background: vc.color,
+                        }}
+                      />
+                    </div>
+                    <strong style={{ color: vc.color, fontFamily: "monospace" }}>
+                      {result.verdictScore}%
+                    </strong>
+                  </div>
+
+                  {/* Quick Save & Export Actions */}
+                  <div
+                    className="no-print"
+                    style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 10 }}
+                  >
+                    <button
+                      onClick={() => handleSaveCurrentIdea()}
+                      className="nav-pill-btn"
+                      style={
+                        isAlreadySaved
+                          ? { borderColor: "#00e676", color: "#00e676", background: "rgba(0,230,118,0.14)" }
+                          : undefined
+                      }
+                    >
+                      {isAlreadySaved ? `💾 ${t(lang, "savedDone")}` : `💾 ${t(lang, "saveIdea")}`}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActiveTab("dpr");
+                        triggerPrint("dpr");
+                      }}
+                      className="nav-pill-btn"
+                      style={{ borderColor: "rgba(86,204,242,0.45)", color: "#56ccf2" }}
+                    >
+                      📄 {t(lang, "printDpr")}
+                    </button>
+                    <button onClick={() => triggerPrint("full")} className="nav-pill-btn">
+                      🖨️ {t(lang, "printReport")}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Result Section Tabs */}
+                <div className="tabs-scroll no-print" style={{ marginBottom: 18 }}>
+                  {RESULT_TABS.map((tab) => {
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        className="tab-btn"
+                        onClick={() => setActiveTab(tab.id)}
+                        style={
+                          isActive
+                            ? { background: tab.accent, color: "#07110b" }
+                            : undefined
+                        }
+                      >
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Tab Content Panels */}
+                {activeTab === "budget" && (
+                  <BudgetPlannerTab
+                    result={result}
+                    budgetTier={selectedBudget}
+                    lang={lang}
+                    onGoToSchemes={() => setActiveTab("schemes")}
+                    onGoToDpr={() => setActiveTab("dpr")}
+                  />
+                )}
+
+                {activeTab === "schemes" && (
+                  <SchemesMatcherTab
+                    result={result}
+                    founderProfile={founderProfileId}
+                    areaType={areaType}
+                    checkedDocs={checkedDocs}
+                    onToggleDoc={handleToggleDoc}
+                    lang={lang}
+                  />
+                )}
+
+                {activeTab === "dpr" && (
+                  <DprReportTab
+                    result={result}
+                    idea={idea}
+                    targetLocation={targetLocation}
+                    sector={sector}
+                    founderProfileLabel={selectedProfile.label}
+                    areaType={areaType}
+                    lang={lang}
+                    onPrintDpr={() => triggerPrint("dpr")}
+                  />
+                )}
+
+                {activeTab === "vc" && <VcAnalysisTab result={result} />}
+                {activeTab === "location" && <LocationTab result={result} />}
+                {activeTab === "marketing" && <MarketingTab result={result} />}
+
+                {/* Bottom Reset */}
+                <div className="no-print" style={{ textAlign: "center", marginTop: 28 }}>
+                  <button
+                    onClick={() => {
+                      setResult(null);
+                      setIdea("");
+                      setCurrentIdeaId(null);
+                      setJustSaved(false);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="nav-pill-btn"
+                  >
+                    {t(lang, "newIdeaBtn")}
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
+      </main>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <div className="mobile-bottom-nav no-print">
+        <button
+          className={`mobile-nav-item ${view === "home" ? "active" : ""}`}
+          onClick={() => setView("home")}
+        >
+          <span style={{ fontSize: 18 }}>🚀</span>
+          <span>{t(lang, "navAnalyze")}</span>
+        </button>
+        <button
+          className={`mobile-nav-item ${view === "calculator" ? "active" : ""}`}
+          onClick={() => setView("calculator")}
+        >
+          <span style={{ fontSize: 18 }}>🧮</span>
+          <span>{t(lang, "tabSchemes")}</span>
+        </button>
+        <button
+          className={`mobile-nav-item ${view === "saved" ? "active" : ""}`}
+          onClick={() => setView("saved")}
+        >
+          <span style={{ fontSize: 18 }}>💾</span>
+          <span>
+            {t(lang, "savedIdeas")} ({savedIdeas.length})
+          </span>
+        </button>
       </div>
-
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
-        * { box-sizing: border-box; }
-        textarea::placeholder, input::placeholder { color: rgba(232,228,220,0.25); }
-        ::-webkit-scrollbar { width: 6px; } 
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-
-        @media print {
-          .no-print { display: none !important; }
-          body { background: #ffffff !important; color: #000000 !important; }
-          .tab-section { display: block !important; page-break-after: always; }
-          div { border-color: #ccc !important; background: transparent !important; color: #000000 !important; }
-        }
-      `}</style>
     </div>
   );
 }

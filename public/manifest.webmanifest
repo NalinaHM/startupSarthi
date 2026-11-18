@@ -1,0 +1,26 @@
+{
+  "name": "StartupSarthi — AI Startup Validator & Funding Companion",
+  "short_name": "StartupSarthi",
+  "description": "AI-powered startup idea validator, zero-capital launch planner, Mudra & PMEGP subsidy matcher, and bank-ready DPR generator for aspiring founders.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#080b14",
+  "theme_color": "#00e676",
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

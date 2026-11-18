@@ -7,14 +7,20 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 export default defineConfig([
   globalIgnores(['dist']),
   {
-    files: ['vite.config.js'],
+    files: ['vite.config.js', 'api/**/*.js'],
     languageOptions: {
       globals: globals.node,
     },
   },
   {
+    files: ['public/sw.js'],
+    languageOptions: {
+      globals: globals.serviceworker,
+    },
+  },
+  {
     files: ['**/*.{js,jsx}'],
-    ignores: ['vite.config.js'],
+    ignores: ['vite.config.js', 'api/**/*.js', 'public/sw.js'],
     extends: [
       js.configs.recommended,
       reactHooks.configs.flat.recommended,
