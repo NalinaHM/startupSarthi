@@ -38,8 +38,8 @@ Thousands of aspiring entrepreneurs in India have strong business ideas but stru
 ## 🚀 Local Setup
 
 ```bash
-git clone https://github.com/NalinaHM/startup-validator.git
-cd startup-validator
+git clone https://github.com/NalinaHM/startupSarthi.git
+cd startupSarthi
 npm install
 cp .env.example .env
 # Add your GEMINI_API_KEY inside .env

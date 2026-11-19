@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">StartupSarthi</string>
+    <string name="title_activity_main">StartupSarthi</string>
+    <string name="package_name">com.nalinahm.startupsarthi</string>
+    <string name="custom_url_scheme">com.nalinahm.startupsarthi</string>
+</resources>

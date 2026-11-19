@@ -10,8 +10,8 @@ Your app is now structured for **two-channel publishing** from one codebase:
 
 Because we added [`api/analyze.js`](./api/analyze.js), your `GEMINI_API_KEY` stays **100% hidden on the server** — never exposed to browser users!
 
-1. Push your latest code to GitHub (`NalinaHM/startup-validator`).
-2. Go to [vercel.com](https://vercel.com) → **Add New → Project** → Import `NalinaHM/startup-validator`.
+1. Push your latest code to GitHub (`NalinaHM/startupSarthi`).
+2. Go to [vercel.com](https://vercel.com) → **Add New → Project** → Import `NalinaHM/startupSarthi`.
 3. Under **Environment Variables**, add:
    - `GEMINI_API_KEY` = your Google Gemini API key (from [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey))
    - `VITE_GEMINI_MODEL` = `gemini-2.5-flash`
@@ -20,30 +20,38 @@ Because we added [`api/analyze.js`](./api/analyze.js), your `GEMINI_API_KEY` sta
 
 ---
 
-## Part 2: Build & Publish on Google Play Store (Android via Capacitor)
+## Part 2: Build & Publish on Google Play Store (Android App)
 
-Once your Vercel URL is live (e.g. `https://startupsarthi.vercel.app`):
+We have already configured your native Android app with:
+- **App Name**: `StartupSarthi`
+- **Package ID**: `com.nalinahm.startupsarthi`
+- **Launcher Icons**: High-res StartupSarthi icons generated for all Android densities (MDPI to XXXHDPI).
+- **Automated Cloud Build**: `.github/workflows/build-android.yml` automatically builds your Android APK on every GitHub push!
 
-1. **Install Prerequisites**:
-   - [Android Studio](https://developer.android.com/studio) (includes Android SDK & Gradle)
-2. **Point your mobile build to your live Vercel API**:
-   Add this line to `.env.production`:
-   ```env
-   VITE_API_BASE_URL=https://your-live-app.vercel.app
-   ```
-3. **Initialize & Sync Android Project**:
-   ```bash
-   npm run android:init
-   npm run android:sync
-   ```
-4. **Open in Android Studio & Build Signed Release Bundle**:
+### Option A: Automatic Cloud Build via GitHub (No Android Studio Needed!)
+1. As soon as you push this code to GitHub, go to your repository: `https://github.com/NalinaHM/startupSarthi/actions`.
+2. Click on the **Build StartupSarthi Android APK** workflow.
+3. Once completed (approx 3 minutes), scroll to **Artifacts** and download **`StartupSarthi-Android-APK`**!
+4. Install this `.apk` directly on any Android phone to test the native app!
+
+### Option B: Local Build via Android Studio (For Play Store .aab Release)
+1. **Install [Android Studio](https://developer.android.com/studio)**.
+2. Open the project in Android Studio:
    ```bash
    npm run android:open
    ```
-   - In Android Studio: **Build → Generate Signed Bundle / APK → Android App Bundle (`.aab`)**.
-   - Create a keystore (keep it safe!).
-5. **Upload to Google Play Console**:
-   - Create a developer account at [play.google.com/console](https://play.google.com/console) (one-time \$25 fee).
-   - Upload your signed `.aab`, attach your icon (`public/icons/icon-512.png`), add screenshots, and submit for review!
+3. In Android Studio:
+   - Click **Build → Generate Signed Bundle / APK**.
+   - Choose **Android App Bundle (`.aab`)** (required by Google Play Store).
+   - Create or choose your keystore file.
+   - Click **Create Release Bundle**.
+4. **Publish to Google Play Store**:
+   - Open [Google Play Console](https://play.google.com/console).
+   - Create an app listing for **StartupSarthi**.
+   - Upload the `.aab` file from `android/app/release/`.
+   - Add your icon from `public/icons/icon-512.png`, app description, and submit for review!
 
-> **Tip (Free Play Store Alternative)**: You can also share the built `.apk` directly, or use [PWABuilder.com](https://www.pwabuilder.com/) with your live Vercel URL to generate a Play Store Trusted Web Activity (TWA) `.aab` package in 2 minutes without even opening Android Studio!
+---
+
+> **Tip (Instant Play Store Alternative via PWABuilder)**:
+> Once your Vercel URL is live (e.g. `https://startupsarthi.vercel.app`), you can also go to [PWABuilder.com](https://www.pwabuilder.com/), enter your URL, and click **Package for Android (Google Play Store)** to generate a signed Google Play `.aab` package online in 2 minutes!
