@@ -14,6 +14,7 @@ import SchemesMatcherTab from "./components/SchemesMatcherTab";
 import DprReportTab from "./components/DprReportTab";
 import { LocationTab, MarketingTab, VcAnalysisTab } from "./components/VcLocationMarketingTabs";
 import SavedIdeasDrawer from "./components/SavedIdeasDrawer";
+import FinancialAssistantTab from "./components/FinancialAssistantTab";
 
 const VERDICT_CONFIG = {
   "STRONG BET": { color: "#00e676", bg: "rgba(0,230,118,0.08)", border: "rgba(0,230,118,0.32)" },
@@ -213,6 +214,7 @@ export default function App() {
     { id: "budget", label: `💸 ${t(lang, "tabBudget")}`, accent: "#00e676" },
     { id: "schemes", label: `🏛️ ${t(lang, "tabSchemes")}`, accent: "#ffb830" },
     { id: "dpr", label: `📄 ${t(lang, "tabDpr")}`, accent: "#56ccf2" },
+    { id: "assistant", label: `🤖 ${t(lang, "tabAssistant")}`, accent: "#00e676" },
     { id: "vc", label: `📊 ${t(lang, "tabVc")}`, accent: "#00e676" },
     { id: "location", label: `📍 ${t(lang, "tabLocation")}`, accent: "#56ccf2" },
     { id: "marketing", label: `📣 ${t(lang, "tabMarketing")}`, accent: "#c58aff" },
@@ -269,6 +271,17 @@ export default function App() {
             </button>
             <button
               className="nav-pill-btn desktop-only"
+              onClick={() => setView("assistant")}
+              style={
+                view === "assistant"
+                  ? { borderColor: "#00e676", color: "#00e676", background: "rgba(0,230,118,0.12)" }
+                  : undefined
+              }
+            >
+              🤖 {t(lang, "navAssistant")}
+            </button>
+            <button
+              className="nav-pill-btn desktop-only"
               onClick={() => setView("saved")}
               style={
                 view === "saved"
@@ -313,6 +326,19 @@ export default function App() {
               areaType={areaType}
               lang={lang}
               standalone
+            />
+          </div>
+        )}
+
+        {view === "assistant" && (
+          <div style={{ paddingTop: 22 }}>
+            <FinancialAssistantTab
+              result={result}
+              idea={idea}
+              sector={sector}
+              budgetTier={selectedBudget}
+              targetLocation={targetLocation}
+              lang={lang}
             />
           </div>
         )}
@@ -722,6 +748,15 @@ export default function App() {
                     >
                       📄 {t(lang, "printDpr")}
                     </button>
+                    <button
+                      onClick={() => {
+                        setActiveTab("assistant");
+                      }}
+                      className="nav-pill-btn"
+                      style={{ borderColor: "rgba(0,230,118,0.45)", color: "#00e676" }}
+                    >
+                      🤖 {t(lang, "navAssistant")}
+                    </button>
                     <button onClick={() => triggerPrint("full")} className="nav-pill-btn">
                       🖨️ {t(lang, "printReport")}
                     </button>
@@ -757,6 +792,7 @@ export default function App() {
                     lang={lang}
                     onGoToSchemes={() => setActiveTab("schemes")}
                     onGoToDpr={() => setActiveTab("dpr")}
+                    onGoToAssistant={() => setActiveTab("assistant")}
                   />
                 )}
 
@@ -781,6 +817,17 @@ export default function App() {
                     areaType={areaType}
                     lang={lang}
                     onPrintDpr={() => triggerPrint("dpr")}
+                  />
+                )}
+
+                {activeTab === "assistant" && (
+                  <FinancialAssistantTab
+                    result={result}
+                    idea={idea}
+                    sector={sector}
+                    budgetTier={selectedBudget}
+                    targetLocation={targetLocation}
+                    lang={lang}
                   />
                 )}
 
@@ -824,6 +871,13 @@ export default function App() {
         >
           <span style={{ fontSize: 18 }}>🧮</span>
           <span>{t(lang, "tabSchemes")}</span>
+        </button>
+        <button
+          className={`mobile-nav-item ${view === "assistant" ? "active" : ""}`}
+          onClick={() => setView("assistant")}
+        >
+          <span style={{ fontSize: 18 }}>🤖</span>
+          <span>{t(lang, "navAssistant")}</span>
         </button>
         <button
           className={`mobile-nav-item ${view === "saved" ? "active" : ""}`}

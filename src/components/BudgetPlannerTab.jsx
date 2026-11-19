@@ -2,7 +2,7 @@ import { formatINR } from "../data/schemes";
 import { t } from "../i18n/translations";
 import { Section, StatCard, Tag } from "./UiPrimitives";
 
-export default function BudgetPlannerTab({ result, budgetTier, lang, onGoToSchemes, onGoToDpr }) {
+export default function BudgetPlannerTab({ result, budgetTier, lang, onGoToSchemes, onGoToDpr, onGoToAssistant }) {
   const plan = result.bootstrapPlan || {};
   const minLaunch = Number(plan.minLaunchCostINR) || 25000;
   const userSavings = Number(budgetTier?.numeric) || 0;
@@ -97,6 +97,13 @@ export default function BudgetPlannerTab({ result, budgetTier, lang, onGoToSchem
             style={{ borderColor: "rgba(0,230,118,0.45)", color: "#00e676" }}
           >
             📄 Generate Bank Loan Project Report (DPR) →
+          </button>
+          <button
+            onClick={onGoToAssistant}
+            className="nav-pill-btn"
+            style={{ borderColor: "rgba(197,138,255,0.45)", color: "#c58aff" }}
+          >
+            🤖 Ask AI Financial Assistant →
           </button>
         </div>
       </div>

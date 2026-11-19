@@ -24,6 +24,7 @@ Thousands of aspiring entrepreneurs in India have strong business ideas but stru
 
 ## ✨ Key Features
 
+- 🤖 **AI Financial Assistant & 24/7 Co-Pilot**: An interactive financial advisor trained on Indian MSME banking rules, Mudra guidelines, zero-capital bootstrapping, profit margin calculations, and bank loan interview preparation. Includes persistent chat history, quick question chips, action step checklists, and context-aware advice for your specific startup!
 - 💸 **Low / Zero-Capital Launch Planner**: Enter your real starting savings (even `₹0` or `< ₹25,000`) to get a Lean MVP budget breakdown (`Must-Have` vs. `Can-Wait`), zero-cost tool shortcuts (WhatsApp Business, UPI, Free Udyam), and a 30-day zero-debt action plan.
 - 🧮 **Offline Smart Govt Subsidy & EMI Calculator**: Calculates your exact **PMEGP subsidy (15%–35%)** based on founder profile (General / Women / SC-ST / OBC / Rural vs. Urban), own margin needed (5%–10%), matching **PM Mudra tier** (Shishu / Kishore / Tarun / Tarun Plus), and monthly EMI — works 100% offline!
 - 🏛️ **Verified Indian Govt Schemes & Interactive Checklists**: Covers **PM Mudra Yojana (PMMY)**, **PMEGP**, **Stand-Up India**, **PM SVANidhi**, **Startup India Seed Fund (SISFS)**, and **PM Vishwakarma** with direct official portal links and auto-saved document checklists.

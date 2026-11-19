@@ -443,7 +443,7 @@ input::placeholder {
     right: 0;
     z-index: 45;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     background: rgba(10, 14, 26, 0.96);
     backdrop-filter: blur(14px);
     border-top: 1px solid var(--border);

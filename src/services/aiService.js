@@ -122,34 +122,42 @@ Return ONLY a valid JSON object (no markdown, no backticks) with this exact sche
 }`;
 }
 
-export async function analyzeStartupIdea({
-  idea,
-  targetLocation,
-  sector,
-  budgetTier,
-  founderProfile,
-  areaType,
-  langCode = "en",
-}) {
+export function buildFinancialAssistantPrompt(langCode = "en") {
+  const langMeta = LANGUAGES.find((l) => l.code === langCode) || LANGUAGES[0];
+
+  return `You are StartupSarthi AI Financial Assistant — an empathetic, expert Indian small business and startup financial advisor.
+Your mission is to give aspiring entrepreneurs with limited or zero starting money actionable, realistic advice on:
+- Launching micro-businesses and startups leanly (₹0–₹50,000 budgets).
+- Government subsidies and loan schemes: PM Mudra Yojana (Shishu/Kishore/Tarun/Tarun Plus), PMEGP 15%–35% subsidies, Stand-Up India, PM SVANidhi, Startup India Seed Fund (SISFS), and PM Vishwakarma.
+- Pricing strategies, cost of goods, working capital management, and avoiding predatory high-interest informal loans.
+- Handling bank managers, required documents, and passing loan interviews without collateral.
+
+LANGUAGE RULE:
+Write ALL human-readable text values (answer, actionSteps, proTip, estimatedFinancials) in ${langMeta.aiLanguage}.
+KEEP JSON KEYS IN ENGLISH.
+
+Return ONLY a valid JSON object (no markdown, no backticks) with this exact schema:
+{
+  "answer": "Direct, empathetic, highly practical answer in 2 to 4 sentences answering the user's specific query.",
+  "actionSteps": [
+    "Step 1: Immediate practical action",
+    "Step 2: Practical action",
+    "Step 3: Practical action"
+  ],
+  "estimatedFinancials": "Estimated figures if applicable (e.g. 'Target Margin: 35%–40% | Min Working Capital: ₹5,000 | PMEGP Subsidy: 25%–35%')",
+  "applicableSchemes": ["Scheme 1", "Scheme 2"],
+  "proTip": "One golden insider financial rule or cost-cutting shortcut for this question."
+}`;
+}
+
+async function callAiEndpoint({ systemPrompt, userPrompt }) {
   const model = import.meta.env.VITE_GEMINI_MODEL || "gemini-2.5-flash";
   const apiBase = String(import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
   const isDev = import.meta.env.DEV;
   const proxyHasKey = !!import.meta.env.VITE_PROXY_HAS_GEMINI_KEY;
   const clientKey = String(import.meta.env.VITE_GEMINI_API_KEY ?? "").trim();
 
-  const systemPrompt = buildSystemPrompt(langCode);
-  const userPrompt = `Analyze this startup idea and build a complete low-capital launch plan, govt scheme match, and Bank-ready DPR:
-- Startup Idea: "${idea.trim()}"
-- Industry Sector: "${sector}"
-- Target Location: "${targetLocation.trim() || "India (Tier-2 City / Local Market)"}"
-- Area Type: "${areaType === "rural" ? "Rural / Village" : "Urban / City"}"
-- Founder Starting Savings Available Now: "${budgetTier.label}" (approx ₹${budgetTier.numeric})
-- Founder Profile (for subsidy calculation): "${founderProfile.label}"`;
-
-  // In production (Vercel web app or Capacitor Android app pointing to Vercel), call secure serverless /api/analyze.
-  // In local Vite dev, use the Vite proxy /api/gemini so developer's .env works out of the box without needing vercel dev.
   const useServerlessEndpoint = !isDev || Boolean(apiBase);
-
   let rawText;
 
   if (useServerlessEndpoint) {
@@ -205,7 +213,7 @@ export async function analyzeStartupIdea({
   }
 
   if (!rawText) {
-    throw new Error("No analysis returned by AI. Please try again.");
+    throw new Error("No response returned by AI. Please try again.");
   }
 
   const clean = rawText
@@ -217,12 +225,63 @@ export async function analyzeStartupIdea({
   try {
     return JSON.parse(clean);
   } catch {
-    // Fallback: extract first JSON object block if model appended trailing text
     const start = clean.indexOf("{");
     const end = clean.lastIndexOf("}");
     if (start !== -1 && end > start) {
       return JSON.parse(clean.slice(start, end + 1));
     }
-    throw new Error("AI response was malformed. Please click Validate again.");
+    throw new Error("AI response was malformed. Please try asking again.");
   }
+}
+
+export async function analyzeStartupIdea({
+  idea,
+  targetLocation,
+  sector,
+  budgetTier,
+  founderProfile,
+  areaType,
+  langCode = "en",
+}) {
+  const systemPrompt = buildSystemPrompt(langCode);
+  const userPrompt = `Analyze this startup idea and build a complete low-capital launch plan, govt scheme match, and Bank-ready DPR:
+- Startup Idea: "${idea.trim()}"
+- Industry Sector: "${sector}"
+- Target Location: "${targetLocation.trim() || "India (Tier-2 City / Local Market)"}"
+- Area Type: "${areaType === "rural" ? "Rural / Village" : "Urban / City"}"
+- Founder Starting Savings Available Now: "${budgetTier.label}" (approx ₹${budgetTier.numeric})
+- Founder Profile (for subsidy calculation): "${founderProfile.label}"`;
+
+  return callAiEndpoint({ systemPrompt, userPrompt });
+}
+
+export async function askFinancialAssistant({
+  question,
+  contextIdea,
+  contextSector,
+  contextBudget,
+  contextLocation,
+  contextSchemes,
+  langCode = "en",
+}) {
+  const systemPrompt = buildFinancialAssistantPrompt(langCode);
+
+  let contextSnippet = "No specific startup idea selected yet (General founder advisory).";
+  if (contextIdea) {
+    contextSnippet = `Currently Selected Startup Context:
+- Business Idea: "${contextIdea}"
+- Sector: "${contextSector || "General"}"
+- Target Location: "${contextLocation || "India"}"
+- Available Starting Capital: "${contextBudget || "₹0–₹25k"}"
+- Matched Schemes: "${(contextSchemes || []).map((s) => s.name || s).join(", ")}"`;
+  }
+
+  const userPrompt = `${contextSnippet}
+
+Founder's Financial Question:
+"${question.trim()}"
+
+Provide practical, mathematically clear, zero-debt financial guidance in the requested language.`;
+
+  return callAiEndpoint({ systemPrompt, userPrompt });
 }

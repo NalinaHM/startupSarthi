@@ -19,6 +19,7 @@ export const TRANSLATIONS = {
     navAnalyze: "New Idea",
     navCalculator: "Loan & Subsidy Calculator",
     navSaved: "Saved Ideas",
+    navAssistant: "AI Financial Assistant",
 
     // Form
     ideaLabel: "1. Describe Your Startup or Small Business Idea *",
@@ -47,6 +48,7 @@ export const TRANSLATIONS = {
     tabBudget: "₹0–Low Budget Plan",
     tabSchemes: "Loans & Subsidies",
     tabDpr: "Bank Project Report",
+    tabAssistant: "AI Financial Advisor",
     tabVc: "VC & Market",
     tabLocation: "Location Fit",
     tabMarketing: "Marketing",
@@ -105,6 +107,30 @@ export const TRANSLATIONS = {
     loadPlan: "Open Plan",
     deletePlan: "Delete",
     checklistProgress: "Docs Ready",
+
+    // AI Financial Assistant
+    assistantTitle: "AI Startup Financial Assistant",
+    assistantSub:
+      "Get direct answers on Mudra loans, PMEGP subsidies, ₹0–₹25k boot-launching, pricing margins, and bank manager interviews.",
+    assistantContextActive: "Context Active for:",
+    assistantContextGeneral: "General Mode — Ask any financial question!",
+    assistantInputPlaceholder: "Ask a financial question (e.g., 'How to apply for Mudra Kishore if bank asks for collateral?')",
+    assistantSend: "Ask Advisor",
+    assistantThinking: "Analyzing financial options...",
+    assistantClear: "Clear History",
+    assistantEmptyHeading: "Welcome to your AI Financial Co-Pilot! 💬",
+    assistantEmptySub:
+      "Tap any suggested question below or type your specific financial bottleneck. I specialize in Indian government schemes, lean budgets, and debt-free bootstrapping.",
+    assistantActionChecklist: "Recommended Action Steps",
+    assistantFinancialMetrics: "Key Financial Estimates",
+    assistantSchemesBadge: "Relevant Govt Support",
+    assistantProTip: "💡 Founder Golden Rule",
+    quickPrompt1: "How do I get a Mudra loan if the bank manager asks for collateral?",
+    quickPrompt2: "How can I launch a business with less than ₹5,000?",
+    quickPrompt3: "How do I claim the 35% PMEGP government subsidy?",
+    quickPrompt4: "What documents are needed for free Udyam MSME registration?",
+    quickPrompt5: "What questions will the bank manager ask during my loan interview?",
+    quickPrompt6: "How should I calculate my product pricing to get a 35% profit margin?",
   },
 
   hi: {
@@ -121,6 +147,7 @@ export const TRANSLATIONS = {
     navAnalyze: "नया आइडिया",
     navCalculator: "लोन व सब्सिडी कैलकुलेटर",
     navSaved: "सेव्ड प्लान",
+    navAssistant: "AI वित्तीय सलाहकार",
 
     ideaLabel: "1. अपना स्टार्टअप या बिज़नेस आइडिया लिखें *",
     ideaPlaceholder:
@@ -145,6 +172,7 @@ export const TRANSLATIONS = {
     tabBudget: "₹0–कम बजट प्लान",
     tabSchemes: "लोन व सब्सिडी",
     tabDpr: "बैंक प्रोजेक्ट रिपोर्ट",
+    tabAssistant: "AI वित्तीय साथी",
     tabVc: "मार्केट और VC",
     tabLocation: "लोकेशन रिपोर्ट",
     tabMarketing: "मार्केटिंग",
@@ -198,6 +226,30 @@ export const TRANSLATIONS = {
     loadPlan: "खोलें",
     deletePlan: "हटाएं",
     checklistProgress: "दस्तावेज़ तैयार",
+
+    // AI Financial Assistant
+    assistantTitle: "AI स्टार्टअप वित्तीय सहायक",
+    assistantSub:
+      "मुद्रा लोन, PMEGP सब्सिडी, ₹0–₹25k में बिज़नेस शुरू करने, और बैंक इंटरव्यू के सीधे सटीक उत्तर पाएं।",
+    assistantContextActive: "सक्रिय बिज़नेस संदर्भ:",
+    assistantContextGeneral: "सामान्य मोड — कोई भी वित्तीय प्रश्न पूछें!",
+    assistantInputPlaceholder: "अपना वित्तीय प्रश्न लिखें (उदा. 'यदि बैंक मुद्रा लोन के लिए गारंटी मांगे तो क्या करें?')",
+    assistantSend: "पूछें",
+    assistantThinking: "सलाह तैयार हो रही है...",
+    assistantClear: "चैट मिटाएं",
+    assistantEmptyHeading: "आपके AI वित्तीय सहायक में स्वागत है! 💬",
+    assistantEmptySub:
+      "नीचे दिए गए सुझावों में से चुनें या अपना वित्तीय सवाल पूछें। मैं सरकारी योजनाओं और कम बजट में बिज़नेस शुरू करने में मदद करता हूँ।",
+    assistantActionChecklist: "जरूरी एक्शन स्टेप्स",
+    assistantFinancialMetrics: "महत्वपूर्ण वित्तीय आंकड़े",
+    assistantSchemesBadge: "उपयुक्त सरकारी योजनाएं",
+    assistantProTip: "💡 संस्थापक का स्वर्णिम नियम",
+    quickPrompt1: "यदि बैंक मैनेजर मुद्रा लोन के लिए गारंटी (Collateral) मांगे तो क्या नियम है?",
+    quickPrompt2: "मात्र ₹5,000 से बिज़नेस कैसे शुरू करें?",
+    quickPrompt3: "PMEGP के तहत 35% सरकारी सब्सिडी कैसे पाएं?",
+    quickPrompt4: "फ्री उद्योग आधार (Udyam) रजिस्ट्रेशन के लिए क्या कागज़ात चाहिए?",
+    quickPrompt5: "लोन के लिए बैंक मैनेजर इंटरव्यू में क्या सवाल पूछते हैं?",
+    quickPrompt6: "35% प्रॉफिट मार्जिन के लिए अपने उत्पाद का मूल्य (Pricing) कैसे तय करें?",
   },
 
   kn: {
@@ -214,6 +266,7 @@ export const TRANSLATIONS = {
     navAnalyze: "ಹೊಸ ಐಡಿಯಾ",
     navCalculator: "ಸಾಲ & ಸಬ್ಸಿಡಿ ಕ್ಯಾಲ್ಕುಲೇಟರ್",
     navSaved: "ಉಳಿಸಿದ ಯೋಜನೆಗಳು",
+    navAssistant: "AI ಹಣಕಾಸು ಸಹಾಯಕ",
 
     ideaLabel: "1. ನಿಮ್ಮ ಸ್ಟಾರ್ಟ್‌ಅಪ್ ಅಥವಾ ವ್ಯಾಪಾರದ ಐಡಿಯಾ ಬರೆಯಿರಿ *",
     ideaPlaceholder:
@@ -238,6 +291,7 @@ export const TRANSLATIONS = {
     tabBudget: "₹0–ಕಡಿಮೆ ಬಜೆಟ್",
     tabSchemes: "ಸಾಲ & ಸಬ್ಸಿಡಿ",
     tabDpr: "ಬ್ಯಾಂಕ್ DPR ವರದಿ",
+    tabAssistant: "AI ಹಣಕಾಸು ಸಲಹೆಗಾರ",
     tabVc: "ಮಾರುಕಟ್ಟೆ & VC",
     tabLocation: "ಸ್ಥಳದ ಮಾಹಿತಿ",
     tabMarketing: "ಮಾರ್ಕೆಟಿಂಗ್",
@@ -291,6 +345,30 @@ export const TRANSLATIONS = {
     loadPlan: "ತೆರೆಯಿರಿ",
     deletePlan: "ಅಳಿಸಿ",
     checklistProgress: "ದಾಖಲೆಗಳು ಸಿದ್ಧ",
+
+    // AI Financial Assistant
+    assistantTitle: "AI ಸ್ಟಾರ್ಟ್‌ಅಪ್ ಹಣಕಾಸು ಸಹಾಯಕ",
+    assistantSub:
+      "ಮುದ್ರಾ ಸಾಲ, PMEGP ಸಬ್ಸಿಡಿ, ₹0–₹25k ಆರಂಭಿಕ ಬಜೆಟ್, ಮತ್ತು ಬ್ಯಾಂಕ್ ಸಂದರ್ಶನದ ನೇರ ಸಲಹೆಗಳನ್ನು ಪಡೆಯಿರಿ.",
+    assistantContextActive: "ಸಕ್ರಿಯ ಉದ್ಯಮ ವಿವರ:",
+    assistantContextGeneral: "ಸಾಮಾನ್ಯ ಮೋಡ್ — ಯಾವುದೇ ಹಣಕಾಸು ಪ್ರಶ್ನೆ ಕೇಳಿ!",
+    assistantInputPlaceholder: "ಪ್ರಶ್ನೆ ಕೇಳಿ (ಉದಾ. 'ಬ್ಯಾಂಕ್ ಮ್ಯಾನೇಜರ್ ಗ್ಯಾರಂಟಿ ಕೇಳಿದರೆ ಏನು ಮಾಡಬೇಕು?')",
+    assistantSend: "ಕೇಳಿ",
+    assistantThinking: "ಸಲಹೆ ಸಿದ್ಧವಾಗುತ್ತಿದೆ...",
+    assistantClear: "ಚಾಟ್ ಅಳಿಸಿ",
+    assistantEmptyHeading: "ನಿಮ್ಮ AI ಹಣಕಾಸು ಸಹಾಯಕನಿಗೆ ಸ್ವಾಗತ! 💬",
+    assistantEmptySub:
+      "ಕೆಳಗಿನ ಪ್ರಶ್ನೆಗಳನ್ನು ಆರಿಸಿ ಅಥವಾ ನಿಮ್ಮ ಹಣಕಾಸಿನ ಸಮಸ್ಯೆಯನ್ನು ಬರೆಯಿರಿ. ಸರ್ಕಾರಿ ಸಾಲಗಳು ಮತ್ತು ಕಡಿಮೆ ವೆಚ್ಚದ ಮಾರ್ಗಗಳನ್ನು ತಿಳಿಸಲು ನಾನು ಸಿದ್ಧ.",
+    assistantActionChecklist: "ಮುಂದಿನ ಕ್ರಮಗಳು",
+    assistantFinancialMetrics: "ಅಂದಾಜು ಹಣಕಾಸಿನ ಲೆಕ್ಕಾಚಾರ",
+    assistantSchemesBadge: "ಅನ್ವಯವಾಗುವ ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು",
+    assistantProTip: "💡 ಉದ್ಯಮಿಯ ಪ್ರಮುಖ ನಿಯಮ",
+    quickPrompt1: "ಮುದ್ರಾ ಸಾಲಕ್ಕೆ ಬ್ಯಾಂಕ್ ಮ್ಯಾನೇಜರ್ ಗ್ಯಾರಂಟಿ ಕೇಳಿದರೆ ನಿಯಮವೇನು?",
+    quickPrompt2: "ಕೇವಲ ₹5,000 ಬಂಡವಾಳದಲ್ಲಿ ವ್ಯಾಪಾರ ಪ್ರಾರಂಭಿಸುವುದು ಹೇಗೆ?",
+    quickPrompt3: "PMEGP ಯೋಜನೆಯಡಿ 35% ಸರ್ಕಾರಿ ಸಬ್ಸಿಡಿ ಪಡೆಯುವುದು ಹೇಗೆ?",
+    quickPrompt4: "ಉಚಿತ ಉದ್ಯಮ್ (Udyam) ನೋಂದಣಿಗೆ ಯಾವ ದಾಖಲೆಗಳು ಬೇಕು?",
+    quickPrompt5: "ಸಾಲ ಮಂಜೂರಾತಿ ವೇಳೆ ಬ್ಯಾಂಕ್ ಮ್ಯಾನೇಜರ್ ಯಾವ ಪ್ರಶ್ನೆಗಳನ್ನು ಕೇಳುತ್ತಾರೆ?",
+    quickPrompt6: "35% ಲಾಭ ಗಳಿಸಲು ನನ್ನ ಉತ್ಪನ್ನದ ಬೆಲೆಯನ್ನು ಹೇಗೆ ನಿಗದಿಪಡಿಸಬೇಕು?",
   },
 };
 
